@@ -4,7 +4,11 @@
 
 #include <Engine/TextureRenderTarget2D.h>
 #include <Kismet/KismetMathLibrary.h> 
-
+#include "Kismet/GameplayStatics.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerCameraManager.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
 #include "Portal.h"
 #include "PortalTools.h"
 
