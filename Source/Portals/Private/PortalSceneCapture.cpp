@@ -11,7 +11,10 @@
 
 UPortalSceneCapture::UPortalSceneCapture(const FObjectInitializer& ObjectInitializer) :
    Super(ObjectInitializer)
-{}
+{
+    CachedRenderSize = 0;
+    LastDistanceToCamera = 0.0f;
+}
 
 
 void UPortalSceneCapture::BeginPlay()
@@ -30,6 +33,34 @@ void UPortalSceneCapture::BeginPlay()
 
    if (!m_linked_portal)
       m_linked_portal = m_owner;
+}
+
+void UPortalSceneCapture::UpdateRenderTarget()
+{
+    APlayerCameraManager* CameraManager = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+    FVector CameraLocation = CameraManager->GetCameraLocation();
+    float Distance = FVector::Dist(CameraLocation, GetComponentLocation());
+
+    int32 DesiredSize = CalculateRenderSize(Distance);
+
+    // Only update if resolution changes significantly
+    if (FMath::Abs((float)DesiredSize - (float)CachedRenderSize) > 32)
+    {
+        // Optional fade-in effect placeholder (e.g. fade in material overlay or delay assignment)
+        UE_LOG(LogTemp, Log, TEXT("Resizing portal render target: %d -> %d (Distance: %.1f)"), CachedRenderSize, DesiredSize, Distance);
+
+        UTextureRenderTarget2D* NewTarget = NewObject<UTextureRenderTarget2D>(this);
+        NewTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA16f;
+        NewTarget->Filter = TF_Bilinear;
+        NewTarget->ClearColor = FLinearColor::Black;
+        NewTarget->InitAutoFormat(DesiredSize, DesiredSize);
+        NewTarget->UpdateResourceImmediate(true);
+
+        TextureTarget = NewTarget;
+        CachedRenderSize = DesiredSize;
+    }
+
+    LastDistanceToCamera = Distance;
 }
 
 
@@ -61,7 +92,7 @@ void UPortalSceneCapture::Init(ECameraType type, APortal* linked_portal, bool ex
    m_weight = weight;
 }
 
-int32 UPortalSceneCaptureComponent::CalculateRenderSize(float Distance) const
+int32 UPortalSceneCapture::CalculateRenderSize(float Distance) const
 {
     constexpr float NearDistance = 300.f;
     constexpr float FarDistance = 2000.f;
@@ -173,20 +204,32 @@ void UPortalSceneCapture::UpdateNearClipPlane_Implementation()
 
 void UPortalSceneCapture::GenerateDefaultTexture()
 {
-   int32 current_size_x = 1920;
-   int32 current_size_y = 1080;
 
-   // Use a smaller size than the current screen to reduce the performance impact
-   current_size_x = FMath::Clamp(int(current_size_x / 1.7), 128, 1920);
-   current_size_y = FMath::Clamp(int(current_size_y / 1.7), 128, 1080);
+   float Distance = LastDistanceToCamera;
+    if (Distance == 0.f)
+    {
+        APlayerCameraManager* CameraManager = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+        Distance = FVector::Dist(CameraManager->GetCameraLocation(), GetComponentLocation());
+    }
+   
+  // int32 current_size_x = 1920;
+  // int32 current_size_y = 1080;
+
+   int32 CurrentSize = CalculateRenderSize(Distance);
+   CachedRenderSize = CurrentSize;
+
+
+  // // Use a smaller size than the current screen to reduce the performance impact
+ //  current_size_x = FMath::Clamp(int(current_size_x / 1.7), 128, 1920);
+ //  current_size_y = FMath::Clamp(int(current_size_y / 1.7), 128, 1080);
 
    // Create new RTT
    m_render_target = NewObject<UTextureRenderTarget2D>(this, UTextureRenderTarget2D::StaticClass(), FName("Default texture"));
 
    m_render_target->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA16f;
    m_render_target->Filter = TextureFilter::TF_Bilinear;
-   m_render_target->SizeX = current_size_x;
-   m_render_target->SizeY = current_size_y;
+   m_render_target->SizeX = CurrentSize;
+   m_render_target->SizeY = CurrentSize;
    m_render_target->ClearColor = FLinearColor::Blue;
    m_render_target->TargetGamma = 2.2f;
    m_render_target->bNeedsTwoCopies = false;
