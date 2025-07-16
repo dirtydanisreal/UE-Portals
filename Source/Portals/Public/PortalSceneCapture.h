@@ -25,6 +25,8 @@ public:
 
    void Update(const FTransform& watched_actor_transfo, const FMatrix& projection_matrix);
 
+   void UpdateRenderTarget();
+
    // ---- Getters & Setters ---- //
 
    void SetSettings(FPostProcessSettings settings) { PostProcessSettings = settings; }
