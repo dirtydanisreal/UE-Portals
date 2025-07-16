@@ -61,6 +61,29 @@ void UPortalSceneCapture::Init(ECameraType type, APortal* linked_portal, bool ex
    m_weight = weight;
 }
 
+int32 UPortalSceneCaptureComponent::CalculateRenderSize(float Distance) const
+{
+    constexpr float NearDistance = 300.f;
+    constexpr float FarDistance = 2000.f;
+    constexpr int32 MaxTextureSize = 1024;
+    constexpr int32 MinTextureSize = 256;
+
+    float Alpha = FMath::Clamp((Distance - NearDistance) / (FarDistance - NearDistance), 0.f, 1.f);
+    int32 Size = FMath::Lerp(MaxTextureSize, MinTextureSize, Alpha);
+    Size = FMath::RoundUpToPowerOfTwo(Size);
+
+    // Clamp to screen size
+    FVector2D ViewportSize;
+    if (GEngine && GEngine->GameViewport)
+    {
+        GEngine->GameViewport->GetViewportSize(ViewportSize);
+        int32 ScreenMin = FMath::RoundUpToPowerOfTwo(FMath::Min(ViewportSize.X, ViewportSize.Y));
+        Size = FMath::Clamp(Size, MinTextureSize, ScreenMin);
+    }
+
+    return Size;
+}
+
 
 void UPortalSceneCapture::Update(const FTransform& watched_actor_transfo, const FMatrix& projection_matrix)
 {
