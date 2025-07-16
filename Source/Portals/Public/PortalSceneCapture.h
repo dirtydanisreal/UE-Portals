@@ -77,6 +77,8 @@ protected:
    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Portal")
    void UpdateNearClipPlane();
 
+   int32 CalculateRenderSize(float Distance) const;
+
    void GenerateDefaultTexture();
 
    // --------------------------- //
@@ -102,6 +104,10 @@ protected:
    float m_refractive_ind_2 = 1.f;
 
    bool m_is_total_reflection = false;
+
+   int32 CachedRenderSize = 0;
+
+   float LastDistanceToCamera = 0.0f;
 
    UTextureRenderTarget2D* m_render_target;
 };
